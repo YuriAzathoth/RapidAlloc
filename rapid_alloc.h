@@ -19,6 +19,7 @@
 #ifndef RAPID_ALLOC_H
 #define RAPID_ALLOC_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /// Free or busy memory block header in memory line
@@ -37,7 +38,10 @@ struct ra_memory_block_header
 	uint32_t size_prev;
 
 	/// Memory block stores data (not free)
-	uint32_t busy;
+	bool busy;
+
+	/// Memory block is last in memory line (next block does not exist)
+	bool last;
 };
 
 /// Memory line header
@@ -114,36 +118,52 @@ inline static void ra_assert(int result, const char* format, ...)
 #define RA_MB_DATA(HEADER) ((void*)((HEADER) + 1))
 #define RA_MB_HEADER_SIZE (sizeof(struct ra_memory_block_header))
 #define RA_MB_NEXT_HEADER(DATA, SIZE) ((struct ra_memory_block_header*)((uint8_t*)DATA + SIZE))
-#define RA_MB_SIBL_SIZE(HEADER, SIZE) ((ptrdiff_t)(HEADER->size - RA_MB_HEADER_SIZE - SIZE))
+#define RA_MB_SIBL_SIZE(HEADER, SIZE) ((int32_t)(HEADER->size - (int32_t)RA_MB_HEADER_SIZE - SIZE))
 
 inline static struct ra_memory_block_header* ra_memory_block_split(struct ra_memory_block_header* block, size_t size)
 {
 	ra_assert(size <= block->size, "Could not allocate %llu bytes from memory block with size %llu", size, block->size);
 
-	const ptrdiff_t sibling_size = RA_MB_SIBL_SIZE(block, size);
+	const int32_t sibling_size = RA_MB_SIBL_SIZE(block, size);
+
 	const uint32_t old_size = block->size;
 	block->size = size;
-	block->busy = 1;
+	block->busy = true;
 
 	if (sibling_size > 0) // Block has got free memory rest
 	{
 		void* data_ptr = RA_MB_DATA(block);
-		struct ra_memory_block_header* next_old = RA_MB_NEXT_HEADER(data_ptr, old_size);
-		struct ra_memory_block_header* next_new = RA_MB_NEXT_HEADER(data_ptr, size);
-		next_old->size_prev = sibling_size;
-		next_new->size = sibling_size;
-		next_new->size_prev = size;
-		next_new->busy = 0;
-		return next_new;
+		struct ra_memory_block_header* sibling = RA_MB_NEXT_HEADER(data_ptr, size);
+		sibling->size = (uint32_t)sibling_size;
+		sibling->size_prev = size;
+		sibling->busy = false;
+		if (block->last == false) // There are blocks after merged block
+		{
+			struct ra_memory_block_header* next = RA_MB_NEXT_HEADER(data_ptr, old_size);
+			next->size_prev = sibling_size;
+		}
+		else // This block is last
+		{
+			block->last = false;
+			sibling->last = true;
+		}
+		return sibling;
 	}
-	else // Block memory is fully allocated
+	else // Block memory has been fully allocated
 		return NULL;
 }
 
 inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left, struct ra_memory_block_header* right)
 {
 	left->size += right->size + RA_MB_HEADER_SIZE;
-	left->busy = 0;
+	left->busy = false;
+	if (right->last == false) // There are blocks after merged block
+	{
+		struct ra_memory_block_header* next = RA_MB_NEXT_HEADER(RA_MB_DATA(left), left->size);
+		next->size_prev = left->size;
+	}
+	else // This block is last
+		left->last = true;
 	return left->size;
 }
 
@@ -151,16 +171,18 @@ inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left
 // Memory Line
 // =========================================
 
-#define RA_FIRST_MEMORY_BLOCK(LINE) ((struct ra_memory_block_header*)((LINE) + 1))
-#define RA_MEMORY_LINE_SIZE(SIZE) (sizeof(struct ra_memory_line_header) + (SIZE))
+#define RA_ML_FIRST_MB(LINE) ((struct ra_memory_block_header*)((LINE) + 1))
+#define RA_ML_SIZE(SIZE) (sizeof(struct ra_memory_line_header) + RA_MB_HEADER_SIZE + (SIZE))
 
 struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 {
-	struct ra_memory_line_header* line = (struct ra_memory_line_header*)ra_sys_alloc(RA_MEMORY_LINE_SIZE(size));
-	line->mem_first = RA_FIRST_MEMORY_BLOCK(line);
+	// At least one block memory line must be able to contain
+	struct ra_memory_line_header* line = (struct ra_memory_line_header*)ra_sys_alloc(RA_ML_SIZE(size));
+	line->mem_first = RA_ML_FIRST_MB(line);
 	line->mem_first->size = size;
 	line->mem_first->size_prev = 0;
-	line->mem_first->busy = 0;
+	line->mem_first->busy = false;
+	line->mem_first->last = true;
 	return line;
 }
 

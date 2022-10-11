@@ -24,6 +24,7 @@
 #include "rapid_alloc.h"
 
 #define TEST_LINE_SIZE 2048
+#define TEST_ALLOC_SIZE 512
 
 void test_line_create_destroy()
 {
@@ -31,37 +32,39 @@ void test_line_create_destroy()
 	TEST_ASSERT(line->mem_first != NULL);
 	TEST_ASSERT(line->mem_first->size == TEST_LINE_SIZE);
 	TEST_ASSERT(line->mem_first->size_prev == 0);
-	TEST_ASSERT(line->mem_first->busy == 0);
+	TEST_ASSERT(line->mem_first->busy == false);
+	TEST_ASSERT(line->mem_first->last == true);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
 
 void test_block_split()
 {
-	const uint32_t size = 256;
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
 	struct ra_memory_block_header* first = line->mem_first;
-	struct ra_memory_block_header* second = ra_memory_block_split(first, size);
-	TEST_ASSERT(first->size == size);
+	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
+	TEST_ASSERT(first->size == TEST_ALLOC_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
-	TEST_ASSERT(first->busy == 1);
+	TEST_ASSERT(first->busy == true);
+	TEST_ASSERT(first->last == false);
 	TEST_ASSERT(second != NULL);
-	TEST_ASSERT(second->size == TEST_LINE_SIZE - RA_MB_HEADER_SIZE - size);
+	TEST_ASSERT(second->size == TEST_LINE_SIZE - RA_MB_HEADER_SIZE - TEST_ALLOC_SIZE);
 	TEST_ASSERT(second->size_prev == first->size);
-	TEST_ASSERT(second->busy == 0);
+	TEST_ASSERT(second->busy == false);
+	TEST_ASSERT(second->last == true);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
 
 void test_block_split_full()
 {
-	const uint32_t size = TEST_LINE_SIZE - sizeof(struct ra_memory_block_header);
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
 	struct ra_memory_block_header* first = line->mem_first;
-	struct ra_memory_block_header* second = ra_memory_block_split(first, size);
-	TEST_ASSERT(first->size == size);
+	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_LINE_SIZE);
+	TEST_ASSERT(first->size == TEST_LINE_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
-	TEST_ASSERT(first->busy == 1);
+	TEST_ASSERT(first->busy == true);
+	TEST_ASSERT(first->last == true);
 	TEST_ASSERT(second == NULL);
 	ra_memory_line_destroy(line);
 	ra_check();
@@ -69,14 +72,28 @@ void test_block_split_full()
 
 void test_block_merge()
 {
-	const uint32_t size = 256;
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
 	struct ra_memory_block_header* first = line->mem_first;
-	struct ra_memory_block_header* second = ra_memory_block_split(first, size);
+	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
 	ra_memory_block_merge(first, second);
-	TEST_ASSERT(line->mem_first->size == TEST_LINE_SIZE);
-	TEST_ASSERT(line->mem_first->size_prev == 0);
-	TEST_ASSERT(line->mem_first->busy == 0);
+	TEST_ASSERT(first->size == TEST_LINE_SIZE);
+	TEST_ASSERT(first->size_prev == 0);
+	TEST_ASSERT(first->busy == false);
+	TEST_ASSERT(first->last == true);
+	ra_memory_line_destroy(line);
+	ra_check();
+}
+
+void test_block_merge_2()
+{
+	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
+	struct ra_memory_block_header* first = line->mem_first;
+	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
+	struct ra_memory_block_header* third = ra_memory_block_split(second, TEST_ALLOC_SIZE);
+	ra_memory_block_merge(first, second);
+	TEST_ASSERT(first->last == false);
+	TEST_ASSERT(second->last == false); // We can, because 2nd is still in memory
+	TEST_ASSERT(third->last == true);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
@@ -87,5 +104,6 @@ TEST_LIST =
 	{ "Block Split", test_block_split },
 	{ "Block Split (Full)", test_block_split_full },
 	{ "Block Merge", test_block_merge },
+	{ "Block Merge (Two Times)", test_block_merge_2 },
 	{ NULL, NULL }
 };
