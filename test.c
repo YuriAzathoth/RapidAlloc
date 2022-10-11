@@ -34,6 +34,7 @@ void test_line_create_destroy()
 	TEST_ASSERT(line->mem_first->mem_prev == NULL);
 	TEST_ASSERT(line->mem_first->mem_next == NULL);
 	ra_memory_line_destroy(line);
+	ra_check();
 }
 
 void test_block_split()
@@ -52,6 +53,7 @@ void test_block_split()
 	TEST_ASSERT(second->mem_prev == first);
 	TEST_ASSERT(second->mem_next == NULL);
 	ra_memory_line_destroy(line);
+	ra_check();
 }
 
 void test_block_split_full()
@@ -66,6 +68,7 @@ void test_block_split_full()
 	TEST_ASSERT(first->mem_next == second);
 	TEST_ASSERT(second == NULL);
 	ra_memory_line_destroy(line);
+	ra_check();
 }
 
 void test_block_merge()
@@ -80,6 +83,7 @@ void test_block_merge()
 	TEST_ASSERT(line->mem_first->mem_prev == NULL);
 	TEST_ASSERT(line->mem_first->mem_next == NULL);
 	ra_memory_line_destroy(line);
+	ra_check();
 }
 
 TEST_LIST =

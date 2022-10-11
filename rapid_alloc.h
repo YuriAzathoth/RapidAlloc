@@ -71,9 +71,25 @@ inline static void ra_sys_free(void* ptr)
 	--g_allocs;
 	free(ptr);
 }
+static void ra_check()
+{
+	if (g_allocs > 0)
+	{
+		fprintf(stderr, "Memory leaks detected: allocated without free.\n");
+		exit(-1);
+		return;
+	}
+	else if (g_allocs < 0)
+	{
+		fprintf(stderr, "Memory leaks detected: free already deallocated memory.\n");
+		exit(-1);
+		return;
+	}
+}
 #else // RA_LEAKS_CHECK
 #define ra_sys_alloc(SIZE) malloc(SIZE)
 #define ra_sys_free(PTR) free(PTR)
+#define ra_check(...)
 #endif // RA_LEAKS_CHECK
 
 #ifdef RA_STRONGER_CHECKS
