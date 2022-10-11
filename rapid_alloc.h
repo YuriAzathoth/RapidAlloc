@@ -131,6 +131,7 @@ inline static struct ra_memory_block_header* ra_memory_block_split(struct ra_mem
 		sibling->size = (uint32_t)sibling_size;
 		sibling->size_prev = size;
 		sibling->busy = false;
+
 		if (block->last == false) // There are blocks after merged block
 		{
 			struct ra_memory_block_header* next = RA_MB_NEXT_HEADER(data_ptr, old_size);
@@ -141,6 +142,7 @@ inline static struct ra_memory_block_header* ra_memory_block_split(struct ra_mem
 			block->last = false;
 			sibling->last = true;
 		}
+
 		return sibling;
 	}
 	else // Block memory has been fully allocated
@@ -151,6 +153,7 @@ inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left
 {
 	left->size += right->size + RA_MB_HEADER_SIZE;
 	left->busy = false;
+
 	if (right->last == false) // There are blocks after merged block
 	{
 		struct ra_memory_block_header* next = RA_MB_NEXT_HEADER(RA_MB_DATA(left), left->size);
@@ -158,6 +161,7 @@ inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left
 	}
 	else // This block is last
 		left->last = true;
+
 	return left->size;
 }
 
@@ -170,14 +174,16 @@ inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left
 
 inline static struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 {
-	// At least one block memory line must be able to contain
+	// Memory line must be able to contain at least one memory block
 	struct ra_memory_line_header* line = (struct ra_memory_line_header*)ra_sys_alloc(RA_ML_SIZE(size));
+	line->busy_blocks = 0;
+
 	struct ra_memory_block_header* block = RA_ML_FIRST_MB(line);
 	block->size = size;
 	block->size_prev = 0;
 	block->busy = false;
 	block->last = true;
-	line->busy_blocks = 0;
+
 	return line;
 }
 
