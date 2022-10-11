@@ -29,11 +29,12 @@
 void test_line_create_destroy()
 {
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	TEST_ASSERT(line->mem_first != NULL);
-	TEST_ASSERT(line->mem_first->size == TEST_LINE_SIZE);
-	TEST_ASSERT(line->mem_first->size_prev == 0);
-	TEST_ASSERT(line->mem_first->busy == false);
-	TEST_ASSERT(line->mem_first->last == true);
+	struct ra_memory_block_header* block = RA_ML_FIRST_MB(line);
+	TEST_ASSERT(block != NULL);
+	TEST_ASSERT(block->size == TEST_LINE_SIZE);
+	TEST_ASSERT(block->size_prev == 0);
+	TEST_ASSERT(block->busy == false);
+	TEST_ASSERT(block->last == true);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
@@ -41,7 +42,7 @@ void test_line_create_destroy()
 void test_block_split()
 {
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = line->mem_first;
+	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
 	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
 	TEST_ASSERT(first->size == TEST_ALLOC_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
@@ -59,7 +60,7 @@ void test_block_split()
 void test_block_split_full()
 {
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = line->mem_first;
+	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
 	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_LINE_SIZE);
 	TEST_ASSERT(first->size == TEST_LINE_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
@@ -73,7 +74,7 @@ void test_block_split_full()
 void test_block_merge()
 {
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = line->mem_first;
+	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
 	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
 	ra_memory_block_merge(first, second);
 	TEST_ASSERT(first->size == TEST_LINE_SIZE);
@@ -87,7 +88,7 @@ void test_block_merge()
 void test_block_merge_2()
 {
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = line->mem_first;
+	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
 	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
 	struct ra_memory_block_header* third = ra_memory_block_split(second, TEST_ALLOC_SIZE);
 	ra_memory_block_merge(first, second);

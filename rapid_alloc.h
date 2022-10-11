@@ -47,9 +47,6 @@ struct ra_memory_block_header
 /// Memory line header
 struct ra_memory_line_header
 {
-	/// First sequented memory block
-	struct ra_memory_block_header* mem_first;
-
 	/// Busy memory blocks count
 	uint32_t busy_blocks;
 };
@@ -175,11 +172,11 @@ inline static struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 {
 	// At least one block memory line must be able to contain
 	struct ra_memory_line_header* line = (struct ra_memory_line_header*)ra_sys_alloc(RA_ML_SIZE(size));
-	line->mem_first = RA_ML_FIRST_MB(line);
-	line->mem_first->size = size;
-	line->mem_first->size_prev = 0;
-	line->mem_first->busy = false;
-	line->mem_first->last = true;
+	struct ra_memory_block_header* block = RA_ML_FIRST_MB(line);
+	block->size = size;
+	block->size_prev = 0;
+	block->busy = false;
+	block->last = true;
 	line->busy_blocks = 0;
 	return line;
 }
