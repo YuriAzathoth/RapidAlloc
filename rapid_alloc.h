@@ -24,12 +24,6 @@
 /// Free or busy memory block header in memory line
 struct ra_memory_block_header
 {
-	/// Previous sequented block in memory line
-	struct ra_memory_block_header* mem_prev;
-
-	/// Next sequented block in memory line
-	struct ra_memory_block_header* mem_next;
-
 	/// Previous typed block in memory line
 	struct ra_memory_block_header* type_prev;
 
@@ -38,6 +32,9 @@ struct ra_memory_block_header
 
 	/// Memory block size without header
 	uint32_t size;
+
+	/// Previous memory block size
+	uint32_t size_prev;
 
 	/// Memory block stores data (not free)
 	uint32_t busy;
@@ -124,21 +121,20 @@ inline static struct ra_memory_block_header* ra_memory_block_split(struct ra_mem
 	ra_assert(size <= block->size, "Could not allocate %llu bytes from memory block with size %llu", size, block->size);
 
 	const ptrdiff_t sibling_size = RA_MB_SIBL_SIZE(block, size);
-	block->busy = 1;
+	const uint32_t old_size = block->size;
 	block->size = size;
+	block->busy = 1;
 
 	if (sibling_size > 0) // Block has got free memory rest
 	{
-		struct ra_memory_block_header* old_next = block->mem_next;
-		struct ra_memory_block_header* new_next = RA_MB_NEXT_HEADER(RA_MB_DATA(block), size);
-		block->mem_next = new_next;
-		new_next->mem_prev = block;
-		new_next->mem_next = old_next;
-		new_next->size = sibling_size;
-		new_next->busy = 0;
-		if (old_next != NULL)
-			old_next->mem_prev = new_next;
-		return new_next;
+		void* data_ptr = RA_MB_DATA(block);
+		struct ra_memory_block_header* next_old = RA_MB_NEXT_HEADER(data_ptr, old_size);
+		struct ra_memory_block_header* next_new = RA_MB_NEXT_HEADER(data_ptr, size);
+		next_old->size_prev = sibling_size;
+		next_new->size = sibling_size;
+		next_new->size_prev = size;
+		next_new->busy = 0;
+		return next_new;
 	}
 	else // Block memory is fully allocated
 		return NULL;
@@ -146,7 +142,6 @@ inline static struct ra_memory_block_header* ra_memory_block_split(struct ra_mem
 
 inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left, struct ra_memory_block_header* right)
 {
-	left->mem_next = right->mem_next;
 	left->size += right->size + RA_MB_HEADER_SIZE;
 	left->busy = 0;
 	return left->size;
@@ -163,9 +158,8 @@ struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 {
 	struct ra_memory_line_header* line = (struct ra_memory_line_header*)ra_sys_alloc(RA_MEMORY_LINE_SIZE(size));
 	line->mem_first = RA_FIRST_MEMORY_BLOCK(line);
-	line->mem_first->mem_prev = NULL;
-	line->mem_first->mem_next = NULL;
 	line->mem_first->size = size;
+	line->mem_first->size_prev = 0;
 	line->mem_first->busy = 0;
 	return line;
 }

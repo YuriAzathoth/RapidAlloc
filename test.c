@@ -30,9 +30,8 @@ void test_line_create_destroy()
 	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
 	TEST_ASSERT(line->mem_first != NULL);
 	TEST_ASSERT(line->mem_first->size == TEST_LINE_SIZE);
+	TEST_ASSERT(line->mem_first->size_prev == 0);
 	TEST_ASSERT(line->mem_first->busy == 0);
-	TEST_ASSERT(line->mem_first->mem_prev == NULL);
-	TEST_ASSERT(line->mem_first->mem_next == NULL);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
@@ -44,14 +43,12 @@ void test_block_split()
 	struct ra_memory_block_header* first = line->mem_first;
 	struct ra_memory_block_header* second = ra_memory_block_split(first, size);
 	TEST_ASSERT(first->size == size);
+	TEST_ASSERT(first->size_prev == 0);
 	TEST_ASSERT(first->busy == 1);
-	TEST_ASSERT(first->mem_prev == NULL);
-	TEST_ASSERT(first->mem_next == second);
 	TEST_ASSERT(second != NULL);
 	TEST_ASSERT(second->size == TEST_LINE_SIZE - RA_MB_HEADER_SIZE - size);
+	TEST_ASSERT(second->size_prev == first->size);
 	TEST_ASSERT(second->busy == 0);
-	TEST_ASSERT(second->mem_prev == first);
-	TEST_ASSERT(second->mem_next == NULL);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
@@ -63,9 +60,8 @@ void test_block_split_full()
 	struct ra_memory_block_header* first = line->mem_first;
 	struct ra_memory_block_header* second = ra_memory_block_split(first, size);
 	TEST_ASSERT(first->size == size);
+	TEST_ASSERT(first->size_prev == 0);
 	TEST_ASSERT(first->busy == 1);
-	TEST_ASSERT(first->mem_prev == NULL);
-	TEST_ASSERT(first->mem_next == second);
 	TEST_ASSERT(second == NULL);
 	ra_memory_line_destroy(line);
 	ra_check();
@@ -79,9 +75,8 @@ void test_block_merge()
 	struct ra_memory_block_header* second = ra_memory_block_split(first, size);
 	ra_memory_block_merge(first, second);
 	TEST_ASSERT(line->mem_first->size == TEST_LINE_SIZE);
+	TEST_ASSERT(line->mem_first->size_prev == 0);
 	TEST_ASSERT(line->mem_first->busy == 0);
-	TEST_ASSERT(line->mem_first->mem_prev == NULL);
-	TEST_ASSERT(line->mem_first->mem_next == NULL);
 	ra_memory_line_destroy(line);
 	ra_check();
 }
