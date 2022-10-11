@@ -51,12 +51,6 @@ struct ra_memory_line_header
 	struct ra_memory_block_header* mem_first;
 };
 
-/// Initialize memory line with fixed size
-struct ra_memory_line_header* ra_memory_line_init(uint32_t size);
-
-/// Destroy memory line
-void ra_memory_line_destroy(struct ra_memory_line_header* line);
-
 //#ifdef RA_IMPLEMENTATION
 #include <stdlib.h>
 
@@ -174,7 +168,7 @@ inline static uint32_t ra_memory_block_merge(struct ra_memory_block_header* left
 #define RA_ML_FIRST_MB(LINE) ((struct ra_memory_block_header*)((LINE) + 1))
 #define RA_ML_SIZE(SIZE) (sizeof(struct ra_memory_line_header) + RA_MB_HEADER_SIZE + (SIZE))
 
-struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
+inline static struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 {
 	// At least one block memory line must be able to contain
 	struct ra_memory_line_header* line = (struct ra_memory_line_header*)ra_sys_alloc(RA_ML_SIZE(size));
@@ -186,7 +180,7 @@ struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 	return line;
 }
 
-void ra_memory_line_destroy(struct ra_memory_line_header* line)
+inline static void ra_memory_line_destroy(struct ra_memory_line_header* line)
 {
 	ra_sys_free(line);
 }
