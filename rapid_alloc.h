@@ -49,6 +49,9 @@ struct ra_memory_line_header
 {
 	/// First sequented memory block
 	struct ra_memory_block_header* mem_first;
+
+	/// Busy memory blocks count
+	uint32_t busy_blocks;
 };
 
 //#ifdef RA_IMPLEMENTATION
@@ -177,6 +180,7 @@ inline static struct ra_memory_line_header* ra_memory_line_init(uint32_t size)
 	line->mem_first->size_prev = 0;
 	line->mem_first->busy = false;
 	line->mem_first->last = true;
+	line->busy_blocks = 0;
 	return line;
 }
 
