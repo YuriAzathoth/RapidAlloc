@@ -16,9 +16,9 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define RA_IMPLEMENTATION
-#define RA_LEAKS_CHECK
-#define RA_STRONGER_CHECKS
+#define A3D_IMPLEMENTATION
+#define A3D_LEAKS_CHECK
+#define A3D_STRONGER_CHECKS
 #include <stdio.h>
 #include "acutest/include/acutest.h"
 #include "rapid_alloc.h"
@@ -28,75 +28,83 @@
 
 void test_line_create_destroy()
 {
-	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* block = RA_ML_FIRST_MB(line);
+	struct a3d_memory_line_header* line = a3d_memory_line_init(TEST_LINE_SIZE);
+	struct a3d_memory_block_header* block = A3D_ML_FIRST_MB(line);
 	TEST_ASSERT(block != NULL);
 	TEST_ASSERT(block->size == TEST_LINE_SIZE);
 	TEST_ASSERT(block->size_prev == 0);
 	TEST_ASSERT(block->busy == false);
 	TEST_ASSERT(block->last == true);
-	ra_memory_line_destroy(line);
-	ra_check();
+	a3d_memory_line_destroy(line);
+	a3d_check();
 }
 
 void test_block_split()
 {
-	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
-	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
+	struct a3d_memory_line_header* line = a3d_memory_line_init(TEST_LINE_SIZE);
+	struct a3d_memory_block_header* first = A3D_ML_FIRST_MB(line);
+	struct a3d_memory_block_header* second = a3d_memory_block_split(first, TEST_ALLOC_SIZE);
 	TEST_ASSERT(first->size == TEST_ALLOC_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
 	TEST_ASSERT(first->busy == true);
 	TEST_ASSERT(first->last == false);
 	TEST_ASSERT(second != NULL);
-	TEST_ASSERT(second->size == TEST_LINE_SIZE - RA_MB_HEADER_SIZE - TEST_ALLOC_SIZE);
+	TEST_ASSERT(second->size == TEST_LINE_SIZE - A3D_MB_HEADER_SIZE - TEST_ALLOC_SIZE);
 	TEST_ASSERT(second->size_prev == first->size);
 	TEST_ASSERT(second->busy == false);
 	TEST_ASSERT(second->last == true);
-	ra_memory_line_destroy(line);
-	ra_check();
+	a3d_memory_line_destroy(line);
+	a3d_check();
 }
 
 void test_block_split_full()
 {
-	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
-	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_LINE_SIZE);
+	struct a3d_memory_line_header* line = a3d_memory_line_init(TEST_LINE_SIZE);
+	struct a3d_memory_block_header* first = A3D_ML_FIRST_MB(line);
+	struct a3d_memory_block_header* second = a3d_memory_block_split(first, TEST_LINE_SIZE);
 	TEST_ASSERT(first->size == TEST_LINE_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
 	TEST_ASSERT(first->busy == true);
 	TEST_ASSERT(first->last == true);
 	TEST_ASSERT(second == NULL);
-	ra_memory_line_destroy(line);
-	ra_check();
+	a3d_memory_line_destroy(line);
+	a3d_check();
 }
 
 void test_block_merge()
 {
-	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
-	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
-	ra_memory_block_merge(first, second);
+	struct a3d_memory_line_header* line = a3d_memory_line_init(TEST_LINE_SIZE);
+	struct a3d_memory_block_header* first = A3D_ML_FIRST_MB(line);
+	struct a3d_memory_block_header* second = a3d_memory_block_split(first, TEST_ALLOC_SIZE);
+	a3d_memory_block_merge(first, second);
 	TEST_ASSERT(first->size == TEST_LINE_SIZE);
 	TEST_ASSERT(first->size_prev == 0);
 	TEST_ASSERT(first->busy == false);
 	TEST_ASSERT(first->last == true);
-	ra_memory_line_destroy(line);
-	ra_check();
+	a3d_memory_line_destroy(line);
+	a3d_check();
 }
 
 void test_block_merge_2()
 {
-	struct ra_memory_line_header* line = ra_memory_line_init(TEST_LINE_SIZE);
-	struct ra_memory_block_header* first = RA_ML_FIRST_MB(line);
-	struct ra_memory_block_header* second = ra_memory_block_split(first, TEST_ALLOC_SIZE);
-	struct ra_memory_block_header* third = ra_memory_block_split(second, TEST_ALLOC_SIZE);
-	ra_memory_block_merge(first, second);
+	struct a3d_memory_line_header* line = a3d_memory_line_init(TEST_LINE_SIZE);
+	struct a3d_memory_block_header* first = A3D_ML_FIRST_MB(line);
+	struct a3d_memory_block_header* second = a3d_memory_block_split(first, TEST_ALLOC_SIZE);
+	struct a3d_memory_block_header* third = a3d_memory_block_split(second, TEST_ALLOC_SIZE);
+	a3d_memory_block_merge(first, second);
 	TEST_ASSERT(first->last == false);
 	TEST_ASSERT(second->last == false); // We can, because 2nd is still in memory
 	TEST_ASSERT(third->last == true);
-	ra_memory_line_destroy(line);
-	ra_check();
+	a3d_memory_line_destroy(line);
+	a3d_check();
+}
+
+void test_rbtree_create_destroy()
+{
+	struct a3d_free_blocks_rbtree tree;
+	a3d_free_blocks_rbtree_init(&tree, 128);
+	a3d_free_blocks_rbtree_destroy(&tree);
+	a3d_check();
 }
 
 TEST_LIST =
@@ -106,5 +114,6 @@ TEST_LIST =
 	{ "Block Split (Full)", test_block_split_full },
 	{ "Block Merge", test_block_merge },
 	{ "Block Merge (Two Times)", test_block_merge_2 },
+	{ "RBTree Create/Destroy", test_rbtree_create_destroy },
 	{ NULL, NULL }
 };
