@@ -104,9 +104,6 @@ extern "C"
 {
 #endif // __cplusplus
 
-void a3d_free_blocks_rbtree_init(struct a3d_free_blocks_rbtree* tree, uint32_t capacity);
-void a3d_free_blocks_rbtree_destroy(struct a3d_free_blocks_rbtree* tree);
-
 struct a3d_memory_block_header* a3d_memory_block_split(struct a3d_memory_block_header* block, size_t size);
 uint32_t a3d_memory_block_merge(struct a3d_memory_block_header* left, struct a3d_memory_block_header* right);
 

@@ -103,14 +103,6 @@ void test_block_merge_2()
 	a3d_memory_check();
 }
 
-void test_rbtree_create_destroy()
-{
-	struct a3d_free_blocks_rbtree tree;
-	a3d_free_blocks_rbtree_init(&tree, 128);
-	a3d_free_blocks_rbtree_destroy(&tree);
-	a3d_memory_check();
-}
-
 TEST_LIST =
 {
 	{ "Line Create/Destroy", test_line_create_destroy },
@@ -118,6 +110,5 @@ TEST_LIST =
 	{ "Block Split (Full)", test_block_split_full },
 	{ "Block Merge", test_block_merge },
 	{ "Block Merge (Two Times)", test_block_merge_2 },
-	{ "RBTree Create/Destroy", test_rbtree_create_destroy },
 	{ NULL, NULL }
 };
