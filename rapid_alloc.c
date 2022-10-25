@@ -32,7 +32,26 @@ inline static void a3d_sys_free(void* ptr);
 // Free Memory Blocks Red-Black Tree
 // =========================================
 
+inline static bool
+a3d_free_blocks_rbtree_resize(struct a3d_free_blocks_rbtree* tree, size_t capacity)
+{
+	const ptrdiff_t first_free = (tree->first_free != NULL) ? tree->first_free - tree->nodes :
+}
 
+bool a3d_free_blocks_rbtree_init(struct a3d_free_blocks_rbtree* tree, size_t capacity)
+{
+	tree->nodes = (struct a3d_free_blocks_rbtree_node*)a3d_sys_alloc(sizeof(struct a3d_free_blocks_rbtree) * capacity);
+	if (tree->nodes == NULL)
+		return false;
+
+	tree->empties = NULL;
+	tree->first_free = tree->nodes;
+	tree->size = 0;
+	tree->capacity = 0;
+	return true;
+}
+
+void a3d_free_blocks_rbtree_destroy(struct a3d_free_blocks_rbtree* tree) { a3d_sys_free(tree->nodes); }
 
 // =========================================
 // Memory Block
