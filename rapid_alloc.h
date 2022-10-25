@@ -22,35 +22,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/// Free or busy memory block header in memory line
-struct a3d_memory_block_header
-{
-	/// Previous typed block in memory line
-	struct a3d_memory_block_header* type_prev;
-
-	/// Next typed block in memory line
-	struct a3d_memory_block_header* type_next;
-
-	/// Memory block size without header
-	uint32_t size;
-
-	/// Previous memory block size
-	uint32_t size_prev;
-
-	/// Memory block stores data (not free)
-	bool busy;
-
-	/// Memory block is last in memory line (next block does not exist)
-	bool last;
-};
-
-/// Memory line header
-struct a3d_memory_line_header
-{
-	/// Busy memory blocks count
-	uint32_t busy_blocks;
-};
-
 /// Free memory blocks tree node
 struct a3d_free_blocks_rbtree_node
 {
@@ -97,6 +68,35 @@ struct a3d_free_blocks_rbtree
 
 	/// Nodes dynamic array capacity
 	uint32_t capacity;
+};
+
+/// Free or busy memory block header in memory line
+struct a3d_memory_block_header
+{
+	/// Previous typed block in memory line
+	struct a3d_memory_block_header* type_prev;
+
+	/// Next typed block in memory line
+	struct a3d_memory_block_header* type_next;
+
+	/// Memory block size without header
+	uint32_t size;
+
+	/// Previous memory block size
+	uint32_t size_prev;
+
+	/// Memory block stores data (not free)
+	bool busy;
+
+	/// Memory block is last in memory line (next block does not exist)
+	bool last;
+};
+
+/// Memory line header
+struct a3d_memory_line_header
+{
+	/// Busy memory blocks count
+	uint32_t busy_blocks;
 };
 
 #ifdef __cplusplus
