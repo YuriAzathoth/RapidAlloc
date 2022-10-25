@@ -16,12 +16,16 @@
 	along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#define A3D_IMPLEMENTATION
-#define A3D_LEAKS_CHECK
-#define A3D_STRONGER_CHECKS
 #include <stdio.h>
 #include "acutest/include/acutest.h"
 #include "rapid_alloc.h"
+
+#define A3D_MB_DATA(HEADER) ((void*)((HEADER) + 1))
+#define A3D_MB_HEADER_SIZE (sizeof(struct a3d_memory_block_header))
+#define A3D_MB_NEXT_HEADER(DATA, SIZE) ((struct a3d_memory_block_header*)((uint8_t*)DATA + SIZE))
+#define A3D_MB_SIBL_SIZE(HEADER, SIZE) ((int32_t)(HEADER->size - (int32_t)A3D_MB_HEADER_SIZE - SIZE))
+#define A3D_ML_FIRST_MB(LINE) ((struct a3d_memory_block_header*)((LINE) + 1))
+#define A3D_ML_SIZE(SIZE) (sizeof(struct a3d_memory_line_header) + A3D_MB_HEADER_SIZE + (SIZE))
 
 #define TEST_LINE_SIZE 2048
 #define TEST_ALLOC_SIZE 512
@@ -36,7 +40,7 @@ void test_line_create_destroy()
 	TEST_ASSERT(block->busy == false);
 	TEST_ASSERT(block->last == true);
 	a3d_memory_line_destroy(line);
-	a3d_check();
+	a3d_memory_check();
 }
 
 void test_block_split()
@@ -49,12 +53,12 @@ void test_block_split()
 	TEST_ASSERT(first->busy == true);
 	TEST_ASSERT(first->last == false);
 	TEST_ASSERT(second != NULL);
-	TEST_ASSERT(second->size == TEST_LINE_SIZE - A3D_MB_HEADER_SIZE - TEST_ALLOC_SIZE);
+	TEST_ASSERT(second->size == TEST_LINE_SIZE - sizeof(struct a3d_memory_block_header) - TEST_ALLOC_SIZE);
 	TEST_ASSERT(second->size_prev == first->size);
 	TEST_ASSERT(second->busy == false);
 	TEST_ASSERT(second->last == true);
 	a3d_memory_line_destroy(line);
-	a3d_check();
+	a3d_memory_check();
 }
 
 void test_block_split_full()
@@ -68,7 +72,7 @@ void test_block_split_full()
 	TEST_ASSERT(first->last == true);
 	TEST_ASSERT(second == NULL);
 	a3d_memory_line_destroy(line);
-	a3d_check();
+	a3d_memory_check();
 }
 
 void test_block_merge()
@@ -82,7 +86,7 @@ void test_block_merge()
 	TEST_ASSERT(first->busy == false);
 	TEST_ASSERT(first->last == true);
 	a3d_memory_line_destroy(line);
-	a3d_check();
+	a3d_memory_check();
 }
 
 void test_block_merge_2()
@@ -96,7 +100,7 @@ void test_block_merge_2()
 	TEST_ASSERT(second->last == false); // We can, because 2nd is still in memory
 	TEST_ASSERT(third->last == true);
 	a3d_memory_line_destroy(line);
-	a3d_check();
+	a3d_memory_check();
 }
 
 void test_rbtree_create_destroy()
@@ -104,7 +108,7 @@ void test_rbtree_create_destroy()
 	struct a3d_free_blocks_rbtree tree;
 	a3d_free_blocks_rbtree_init(&tree, 128);
 	a3d_free_blocks_rbtree_destroy(&tree);
-	a3d_check();
+	a3d_memory_check();
 }
 
 TEST_LIST =
